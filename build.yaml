@@ -1,0 +1,51 @@
+---
+- name: Install Docker and Docker Compose
+  hosts: all
+  gather_facts: true
+  become: yes
+  vars:
+    ansible_become_pass: ***
+
+  tasks:
+    - name: Stop UFW Service
+      systemd:
+        name: ufw
+        state: stopped
+      ignore_errors: true
+  
+    - name: Disable UFW Service
+      systemd:
+        name: ufw
+        enabled: no
+      ignore_errors: true
+    
+    - name: Install dependencies
+      apt:
+        name:
+         -  ca-certificates
+         -  apt-transport-https 
+         -  gnupg
+        state: present
+    
+    - name: Create docker directory for gitlab
+      file:
+        path:  /srv/gitlab 
+        state: directory
+    
+    - name: Create docker compose file directory
+      file:
+        path:  ~/gitlab-docker
+        state: directory
+
+    - name: Update SSH Port in sshd_config
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^Port\s+22'
+        line: 'Port 2425'
+      notify: Restart SSH Service
+  
+  handlers:
+    - name: Restart SSH Service
+      service:
+        name: sshd
+        state: restarted
